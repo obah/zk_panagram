@@ -18,7 +18,45 @@ contract PanagramTest is Test {
     //create answer
     uint256 constant FIELD_MOD =
         21888242871839275222246405745257275088548364400416034343698204186575808495617;
-    bytes32 ANSWER = bytes32(uint256(keccak256("madam")) % FIELD_MOD);
+
+    bytes32 constant ANSWER =
+        bytes32(
+            uint256(
+                keccak256(
+                    abi.encodePacked(
+                        bytes32(uint256(keccak256("madam")) % FIELD_MOD)
+                    )
+                )
+            ) % FIELD_MOD
+        );
+
+    bytes32 constant INCORRECT_ANSWER =
+        bytes32(
+            uint256(
+                keccak256(
+                    abi.encodePacked(
+                        bytes32(uint256(keccak256("madma")) % FIELD_MOD)
+                    )
+                )
+            ) % FIELD_MOD
+        );
+
+    bytes32 constant NEW_ANSWER =
+        bytes32(
+            uint256(
+                keccak256(
+                    abi.encodePacked(
+                        bytes32(uint256(keccak256("eurology")) % FIELD_MOD)
+                    )
+                )
+            ) % FIELD_MOD
+        );
+
+    bytes32 constant CORRECT_GUESS =
+        bytes32(uint256(keccak256("madam")) % FIELD_MOD);
+
+    bytes32 constant INCORRECT_GUESS =
+        bytes32(uint256(keccak256("madma")) % FIELD_MOD);
 
     function setUp() public {
         verifier = new HonkVerifier();
@@ -50,7 +88,7 @@ contract PanagramTest is Test {
     //* 1. TEST player receives NFT 0 i they guess correctly first
     function testFirstCorrectGuess() public {
         vm.prank(player1);
-        bytes memory proof = _getProof(ANSWER, ANSWER, player1);
+        bytes memory proof = _getProof(CORRECT_GUESS, ANSWER, player1);
 
         panagram.makeGuess(proof);
 
@@ -65,13 +103,9 @@ contract PanagramTest is Test {
 
     //* 2. TEST player cannot claim NFT if they guess incorrectly
     function testIncorrectGuess() public {
-        bytes32 INCORRECT_ANSWER = bytes32(
-            uint256(keccak256("madma")) % FIELD_MOD
-        );
-
         vm.prank(player1);
         bytes memory proof = _getProof(
-            INCORRECT_ANSWER,
+            INCORRECT_GUESS,
             INCORRECT_ANSWER,
             player1
         );
@@ -83,7 +117,7 @@ contract PanagramTest is Test {
     //* 3. TEST player cannot claim NFT if they already won
     function testNoDoubleGuess() public {
         vm.prank(player1);
-        bytes memory proof = _getProof(ANSWER, ANSWER, player1);
+        bytes memory proof = _getProof(CORRECT_GUESS, ANSWER, player1);
 
         panagram.makeGuess(proof);
 
@@ -94,12 +128,12 @@ contract PanagramTest is Test {
     //* 4. test player receives NFT 1 if they guess correctly second
     function testSecondCorrectGuess() public {
         vm.prank(player1);
-        bytes memory proof1 = _getProof(ANSWER, ANSWER, player1);
+        bytes memory proof1 = _getProof(CORRECT_GUESS, ANSWER, player1);
 
         panagram.makeGuess(proof1);
 
         vm.prank(player2);
-        bytes memory proof2 = _getProof(ANSWER, ANSWER, player2);
+        bytes memory proof2 = _getProof(CORRECT_GUESS, ANSWER, player2);
         panagram.makeGuess(proof2);
         vm.assertEq(panagram.balanceOf(player2, 0), 0);
         vm.assertEq(panagram.balanceOf(player2, 1), 1);
@@ -108,15 +142,11 @@ contract PanagramTest is Test {
     //* 5. test new round can be started after minimum time
     function testStartNewRound() public {
         vm.prank(player1);
-        bytes memory proof1 = _getProof(ANSWER, ANSWER, player1);
+        bytes memory proof1 = _getProof(CORRECT_GUESS, ANSWER, player1);
 
         panagram.makeGuess(proof1);
 
         vm.warp(panagram.MIN_DURATION() + 1);
-
-        bytes32 NEW_ANSWER = bytes32(
-            uint256(keccak256("eurology")) % FIELD_MOD
-        );
 
         panagram.newRound(NEW_ANSWER);
 
@@ -127,7 +157,7 @@ contract PanagramTest is Test {
 
     //* 6. test proof cant be reused by another person
     function testUniqueProof() public {
-        bytes memory proof1 = _getProof(ANSWER, ANSWER, player1);
+        bytes memory proof1 = _getProof(CORRECT_GUESS, ANSWER, player1);
 
         vm.prank(player2);
 

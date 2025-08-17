@@ -1,7 +1,16 @@
-fn main(guess_hash: Field, answer_hash: pub Field, address: pub Field) {
+use dep::keccak256::keccak256;
+
+fn main(guess_hash: Field, hashed_answer_hash: pub Field, address: pub Field) {
     //address is added to make each proof unique and avoid collisions
 
-    assert(guess_hash == answer_hash);
+    //to avoid people getting the public answer hash and passing it with a script
+    //we hash the answer hash
+
+    let guess_hash_arr: [u8; 32] = guess_hash.to_be_bytes();
+
+    let hashed_guess_hash = keccak256(guess_hash_arr, 32);
+
+    assert(Field::from_be_bytes(hashed_guess_hash) == hashed_answer_hash);
 }
 
 // #[test]
